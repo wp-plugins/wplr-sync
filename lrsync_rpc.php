@@ -47,6 +47,13 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		$lrinfo->lr_file = $fileinfo["file"];
 		$lrinfo->lr_title = $fileinfo["title"];
 		$lrinfo->lr_caption = $fileinfo["caption"];
+		$lrinfo->lr_desc = $fileinfo["desc"];
+		$lrinfo->lr_alt_text = $fileinfo["altText"];
+		$lrinfo->sync_title = $fileinfo["syncTitle"];
+		$lrinfo->sync_caption = $fileinfo["syncCaption"];
+		$lrinfo->sync_desc = $fileinfo["syncDesc"];
+		$lrinfo->sync_alt_text = $fileinfo["syncAltText"];
+
 		$lrinfo->type = $fileinfo["type"];
 		$file = $this->b64_to_file( $fileinfo["data"] );
 		if ( !$sync = $this->sync_media( $lrinfo, $file ) )
@@ -108,12 +115,23 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		return $user->data;
 	}
 
+	// Get LinkInfo for the Media ID
+	function rpc_link( $args ) {
+		if ( !$user = $this->rpc_init_with( $args ) ) {
+			return $this->error;
+		}
+		$lr_id = $args[0];
+		$wp_id = $args[1];
+		return $this->link_media( $lr_id, $wp_id );
+	}
+
 	function xmlrpc_methods( $methods ) {
 		$methods['lrsync.ping'] = array( $this, 'rpc_ping' );
 		$methods['lrsync.sync'] = array( $this, 'rpc_sync' );
 		$methods['lrsync.list'] = array( $this, 'rpc_list' );
 		$methods['lrsync.delete'] = array( $this, 'rpc_delete' );
 		$methods['lrsync.list_unlinks'] = array( $this, 'rpc_list_unlinks' );
+		$methods['lrsync.link'] = array( $this, 'rpc_link' );
 		$methods['lrsync.linkinfo'] = array( $this, 'rpc_linkinfo' );
 		$methods['lrsync.linkinfo_upload'] = array( $this, 'rpc_linkinfo_upload' );
 		$methods['lrsync.userinfo'] = array( $this, 'rpc_userinfo' );

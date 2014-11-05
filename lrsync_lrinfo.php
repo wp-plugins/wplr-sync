@@ -7,8 +7,16 @@ class Meow_WPLR_LRInfo {
 	public $lr_file; // Filename
 	public $lr_title;
 	public $lr_caption;
+	public $lr_desc;
+	public $lr_alt_text;
 	public $wp_id;
 	public $lastsync;
+
+	// Conditions
+	public $sync_title;
+	public $sync_caption;
+	public $sync_alt_text;
+	public $sync_desc;
 
 	// Extra
 	public $type; // MIME type
@@ -25,8 +33,6 @@ class Meow_WPLR_LRInfo {
 		$instance = new self();
 		$instance->lr_id = $row->lr_id;
 		$instance->lr_file = $row->lr_file;
-		$instance->lr_title = $row->lr_title;
-		$instance->lr_caption = $row->lr_caption;
 		$instance->wp_id = $row->wp_id;
 		$instance->lastsync = $row->lastsync;
 		return $instance;

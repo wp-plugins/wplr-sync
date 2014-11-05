@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
 Requires at least: 4.0.0
 Tested up to: 4.0
-Stable tag: 0.1
+Stable tag: 0.2
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -14,7 +14,7 @@ Synchronize your photos and metadata between Lightroom and WordPress. This plugi
 
 Lightroom will be then able to add, update and delete photos directly. Titles, captions and alternative texts can be also synchronized. 
 
-If you dream to link your previously uploaded photos with the original ones in Lightroom, this is possible. Using EXIF and image perceptual analysis, the plugin will offer you to link them. You also have the choice to do it manually, the user interface will guide go through it easily.
+If you dream to link the photos you uploaded previously with the original ones in Lightroom, this is possible. Using EXIF and image perceptual analysis, the plugin will offer you to link them. You also have the choice to do it manually, the user interface will guide go through it easily.
 
 Languages: English.
 
@@ -36,6 +36,10 @@ Please contact me through <a href='http://www.meow.fr'>my website</a>. Thanks!
 == Screenshots ==
 
 == Changelog ==
+
+= 0.2 =
+* Add: Handles metadata.
+* Fix: XML/RPC Sync.
 
 = 0.1 =
 * First release.

@@ -3,7 +3,7 @@
 Plugin Name: WP/LR Sync
 Plugin URI: http://www.meow.fr
 Description: Synchronize and maintain your photos between Lightroom and Wordpress.
-Version: 0.1
+Version: 0.2
 Author: Jordy Meow
 Author URI: http://www.meow.fr
 
@@ -32,8 +32,6 @@ function meow_wplrsync_activate() {
 		wp_id BIGINT(20) NULL,
 		lr_id BIGINT(20) NULL,
 		lr_file TINYTEXT NULL,
-		lr_title TINYTEXT NULL,
-		lr_caption TINYTEXT NULL,
 		lastsync DATETIME NULL,
 		UNIQUE KEY id (id)
 	);";
@@ -50,6 +48,6 @@ function meow_wplrsync_uninstall() {
 register_activation_hook( __FILE__, 'meow_wplrsync_activate' );
 register_uninstall_hook( __FILE__, 'meow_wplrsync_uninstall' );
 
-$GLOBALS['Meow_WPLR_Sync'] = WP_DEBUG ? new Meow_WPLR_Sync_Admin : new Meow_WPLR_Sync_RPC;
+$GLOBALS['Meow_WPLR_Sync'] = get_option( 'wplr_tools_enabled' ) ? new Meow_WPLR_Sync_Admin : new Meow_WPLR_Sync_RPC;
 
 ?>

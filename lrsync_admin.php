@@ -116,7 +116,17 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 			}
 			else if ( $action == "sync" ) {
 				$tmp_path = $_FILES['file']['tmp_name'];
-				$lrinfo = new Meow_WPLR_LRInfo( $_POST['lr_id'] == "" ? -1 : $_POST['lr_id'], $_FILES['file']['name'], $_POST['title'], "" );
+				$lrinfo = new Meow_WPLR_LRInfo(); 
+				$lrinfo->lr_id = $_POST['lr_id'] == "" ? -1 : $_POST['lr_id'];
+				$lrinfo->lr_file = $_FILES['file']['name'];
+				$lrinfo->lr_title = isset( $_POST['title'] ) ? $_POST['title'] : "";
+				$lrinfo->lr_caption = $_POST['caption'];
+				$lrinfo->lr_desc = isset( $_POST['desc'] ) ? $_POST['desc'] : "";
+				$lrinfo->lr_alt_text = isset( $_POST['altText'] ) ? $_POST['altText'] : "";
+				$lrinfo->sync_title = isset( $_POST['syncTitle'] ) && $_POST['syncTitle'] == 'on';
+				$lrinfo->sync_caption = isset( $_POST['syncCaption'] ) && $_POST['syncCaption'] == 'on';
+				$lrinfo->sync_desc = isset( $_POST['syncDesc'] ) && $_POST['syncDesc'] == 'on';
+				$lrinfo->sync_alt_text = isset( $_POST['syncAltText'] ) && $_POST['syncAltText'] == 'on';
 				$lrinfo->type = $_FILES['file']['type'];
 				if ( $this->sync_media( $lrinfo, $tmp_path ) )
 					echo "<div class='updated'><p>Lr ID " . $_POST['lr_id'] . " was synchronized with the attachment.</p></div>";
@@ -171,7 +181,6 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 			
 			<div class="left">
 				<div style="font-weight: bold;"><?php echo $link_files_count ?> linked files out of <?php echo ( $link_files_count + $unlink_files_count ) ?> media files.</div>
-				<div>This screen is only available in debug mode.</div>
 
 				<h3>Link</h3>
 				<p>Will link the WP Media ID to the Lr ID.</p>
@@ -194,6 +203,22 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 					
 				</form>
 
+				<h3>Unlink</h3>
+				<p>Will unlink the media.</p>
+				<form class="wplrsync-form" method="post" action="">
+					<input type="hidden" name="action" value="unlink">
+					<table>
+						<tr>
+							<th scope="row"><label for="lr_id">Lr ID</label></th>
+							<td><input name="lr_id" type="text" id="lr_id" value="" class="regular-text code"></td>
+						</tr>
+						<tr>
+							<th scope="row"></th>
+							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Unlink"></td>
+						</tr>
+					</table>
+				</form>
+
 				<h3>Sync</h3>
 				<p>Will create the entry if doesn't exist, will update it if exists.</p>
 				<form class="wplrsync-form" method="post" action="" enctype="multipart/form-data">
@@ -208,15 +233,51 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 							<td><input name="title" type="text" id="title" class="regular-text code"></td>
 						</tr>
 						<tr>
+							<th scope="row"><label for="title">Caption</label></th>
+							<td><input name="caption" type="text" id="caption" class="regular-text code"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="title">Desc</label></th>
+							<td><input name="desc" type="text" id="desc" class="regular-text code"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="title">Alt</label></th>
+							<td><input name="altText" type="text" id="altText" class="regular-text code"></td>
+						</tr>
+						<tr>
 							<th scope="row"><label for="file">File</label></th>
 							<td><input name="file" type="file" id="file"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="sync">Sync</label></th>
+							<td>
+								<label><input type="checkbox" id="syncTitle" name="syncTitle">Title</label>
+								<label><input type="checkbox" id="syncCaption" name="syncCaption">Caption</label>
+								<label><input type="checkbox" id="syncDesc" name="syncDesc">Desc</label>
+								<label><input type="checkbox" id="syncAltText" name="syncAltText">Alt</label>
+							</td>
 						</tr>
 						<tr>
 							<th scope="row"></th>
 							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Sync Media"></td>
 						</tr>
 					</table>
-					
+				</form>
+
+				<h3>Remove</h3>
+				<p>Will remove the media.</p>
+				<form class="wplrsync-form" method="post" action="">
+					<input type="hidden" name="action" value="remove">
+					<table>
+						<tr>
+							<th scope="row"><label for="lr_id">Lr ID</label></th>
+							<td><input name="lr_id" type="text" id="lr_id" value="" class="regular-text code"></td>
+						</tr>
+						<tr>
+							<th scope="row"></th>
+							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Remove Media"></td>
+						</tr>
+					</table>
 				</form>
 
 				<h3>Link info</h3>
@@ -235,38 +296,6 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 						<tr>
 							<th scope="row"></th>
 							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Check"></td>
-						</tr>
-					</table>
-				</form>
-
-				<h3>Unlink</h3>
-				<p>Will unlink the media.</p>
-				<form class="wplrsync-form" method="post" action="">
-					<input type="hidden" name="action" value="unlink">
-					<table>
-						<tr>
-							<th scope="row"><label for="lr_id">Lr ID</label></th>
-							<td><input name="lr_id" type="text" id="lr_id" value="" class="regular-text code"></td>
-						</tr>
-						<tr>
-							<th scope="row"></th>
-							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Unlink"></td>
-						</tr>
-					</table>
-				</form>
-
-				<h3>Remove</h3>
-				<p>Will remove the media.</p>
-				<form class="wplrsync-form" method="post" action="">
-					<input type="hidden" name="action" value="remove">
-					<table>
-						<tr>
-							<th scope="row"><label for="lr_id">Lr ID</label></th>
-							<td><input name="lr_id" type="text" id="lr_id" value="" class="regular-text code"></td>
-						</tr>
-						<tr>
-							<th scope="row"></th>
-							<td><input type="submit" name="submit" id="submit" class="button button-primary" value="Remove Media"></td>
 						</tr>
 					</table>
 				</form>

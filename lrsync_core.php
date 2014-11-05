@@ -9,6 +9,35 @@ class Meow_WPLR_Sync_Core {
 		add_action( 'manage_media_custom_column', array( $this, 'manage_media_custom_column' ), 10, 2 );
 		add_action( 'admin_head', array( $this, 'admin_head' ), 10, 2 );
 		add_action( 'wp_ajax_wplrsync_link', array( $this, 'wplrsync_link' ) );
+		add_action( 'admin_init', array( $this, 'admin_init' ) );
+
+	}
+
+	/*
+		OPTIONS
+	*/
+
+	function admin_init() {
+		add_settings_section( "wplrsync_media_options", "WP/LR Sync", 
+			array( $this, 'media_options_callback' ), "media" );
+		add_settings_field( 'wplr_tools_enabled', "WPLR Tools", 
+			array( $this, 'toggle_content_callback' ), "media", 'wplrsync_media_options',
+			array( "Enable" ) );
+		register_setting( 'media', 'wplr_tools_enabled' );
+	}
+
+	function media_options_callback() {
+		echo "<p>Those settings should be used for debugging purposes only.</p>";
+	}
+
+	function toggle_content_callback( $args ) {
+		$html = '<input type="checkbox" id="wplr_tools_enabled" name="wplr_tools_enabled" value="1" ' . checked( 1, get_option( 'wplr_tools_enabled' ), false ) . '/>'; 
+		$html .= '<label for="wplr_tools_enabled"> '  . $args[0] . '</label>';
+		echo $html;
+	}
+
+	function admin_init_options( $args ) {
+
 	}
 
 	/*
@@ -82,8 +111,6 @@ class Meow_WPLR_Sync_Core {
 					'wp_id' => $wp_id,
 					'lr_id' => $lr_id,
 					'lr_file' => null,
-					'lr_title' => null,
-					'lr_caption' => null,
 					'lastsync' => null
 				) 
 			);
@@ -134,7 +161,8 @@ class Meow_WPLR_Sync_Core {
 			if ( !$wp_id = wp_insert_attachment( array(
 				'guid' => $wp_upload_dir['url'] . '/' . basename( $newpath ),
 				'post_title' => $lrinfo->lr_title,
-				'post_content' => $lrinfo->lr_caption,
+				'post_content' => $lrinfo->lr_desc,
+				'post_excerpt' => $lrinfo->lr_caption,
 				'post_mime_type' => $lrinfo->type,
 				'post_status' => "inherit",
 			), $newpath ) ) {
@@ -144,6 +172,9 @@ class Meow_WPLR_Sync_Core {
 			$attach_data = wp_generate_attachment_metadata( $wp_id, $newpath );
 			wp_update_attachment_metadata( $wp_id, $attach_data );
 			
+			// Create Alt Text
+			update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
+
 			// Support for WP Retina 2x
 			if ( function_exists( 'wr2x_generate_images' ) ) {
 				wr2x_generate_images( $attach_data );
@@ -154,13 +185,12 @@ class Meow_WPLR_Sync_Core {
 					'wp_id' => $wp_id,
 					'lr_id' => ( $lrinfo->lr_id == "" || $lrinfo->lr_id == null ) ? -1 : $lrinfo->lr_id,
 					'lr_file' => $lrinfo->lr_file,
-					'lr_title' => $lrinfo->lr_title,
-					'lr_caption' => $lrinfo->lr_caption,
 					'lastsync' => current_time('mysql')
 				) 
 			);
 		}
 		else {
+			$wp_id = $sync->wp_id;
 			$meta = wp_get_attachment_metadata( $sync->wp_id );
 			$current_file = get_attached_file( $sync->wp_id );
 			
@@ -204,15 +234,32 @@ class Meow_WPLR_Sync_Core {
 			// Generate the images
 			wp_update_attachment_metadata( $sync->wp_id, wp_generate_attachment_metadata( $sync->wp_id, $current_file ) );
 
+			// Update Title, Description and Caption
+			if ( $lrinfo->sync_title || $lrinfo->sync_caption || $lrinfo->sync_desc ) {
+				$post = array( 'ID' => $wp_id );
+				if ( $lrinfo->sync_title )
+					$post['post_title'] = $lrinfo->lr_title;
+				if ( $lrinfo->sync_desc )
+					$post['post_content'] = $lrinfo->lr_desc;
+				if ( $lrinfo->sync_caption )
+					$post['post_excerpt'] = $lrinfo->lr_caption;
+				wp_update_post( $post );
+			}
+			
+			// Update Alt Text if needed
+			if ( $lrinfo->sync_alt_text )
+					update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
+
 			// Support for WP Retina 2x
 			if ( function_exists( 'wr2x_generate_images' ) )
 				wr2x_generate_images( wp_get_attachment_metadata( $sync->wp_id ) );
 
 			$wpdb->query( $wpdb->prepare( "UPDATE $table_name 
-				SET lr_file = %s, lr_title = %s, lr_caption = %s, lastsync = NOW()
-				WHERE lr_id = %d", $lrinfo->lr_file, $lrinfo->lr_title, $lrinfo->lr_caption, $lrinfo->lr_id ) 
+				SET lr_file = %s, lastsync = NOW()
+				WHERE lr_id = %d", $lrinfo->lr_file, $lrinfo->lr_id ) 
 			);
 		}
+
 		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
 		$info = Meow_WPLR_LRInfo::fromRow( $sync );
 		return $info;
@@ -275,7 +322,7 @@ class Meow_WPLR_Sync_Core {
 		$potentials = array();
 		$posts = $wpdb->get_col( "SELECT p.ID FROM $wpdb->posts p 
 			WHERE post_status = 'inherit' 
-			AND post_type = 'attachment' 
+			AND post_mime_type = 'image/jpeg'
 			AND p.ID NOT IN (SELECT wp_id FROM $table_name)
 			ORDER BY p.ID DESC" );
 		foreach ( $posts as $post_id ) {
