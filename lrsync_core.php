@@ -9,6 +9,7 @@ class Meow_WPLR_Sync_Core {
 		add_action( 'manage_media_custom_column', array( $this, 'manage_media_custom_column' ), 10, 2 );
 		add_action( 'admin_head', array( $this, 'admin_head' ), 10, 2 );
 		add_action( 'wp_ajax_wplrsync_link', array( $this, 'wplrsync_link' ) );
+		add_action( 'wp_ajax_wplrsync_unlink', array( $this, 'wplrsync_unlink' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
 
 	}
@@ -81,12 +82,12 @@ class Meow_WPLR_Sync_Core {
 		}
 	}
 
-	function unlink_media( $lr_id ) {
+	function unlink_media( $lr_id, $wp_id ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lr_id), OBJECT );
+		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d AND wp_id = %d", $lr_id, $wp_id), OBJECT );
 		if ( $sync ) {
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d", $sync->lr_id ) );
+			$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d AND wp_id = %d", $sync->lr_id, $sync->wp_id ) );
 			return true;
 		}
 		$this->error = new IXR_Error( 403, __( "There is no link for this media." ) );
@@ -96,7 +97,7 @@ class Meow_WPLR_Sync_Core {
 	function link_media( $lr_id, $wp_id ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		if ( empty( $lr_id ) || empty( $wp_id ) ) {
+		if ( empty( $wp_id ) ) {
 			$this->error = new IXR_Error( 403, __( "The arguments lr_id and wp_id are required." ) );
 			return false;
 		}
@@ -141,14 +142,14 @@ class Meow_WPLR_Sync_Core {
 	function sync_media( $lrinfo, $tmp_path ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
+		$sync_results = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
 		
 		if ( $tmp_path == null || empty( $tmp_path ) ) {
 			$this->error = new IXR_Error( 403, __( "The file was not uploaded." ) );
 			return false;
 		}
 
-		if ( !$sync ) {
+		if ( !$sync_results ) {
 			$upload_dir = wp_upload_dir();
 			$newfile = wp_unique_filename( $upload_dir["path"], $lrinfo->lr_file );
 			$newpath = trailingslashit( $upload_dir["path"] ) . $newfile;
@@ -316,19 +317,37 @@ class Meow_WPLR_Sync_Core {
 		);
 	}
 
-	function list_unlinks() {
+	function list_unlinks( $allfields = false ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
 		$potentials = array();
-		$posts = $wpdb->get_col( "SELECT p.ID FROM $wpdb->posts p 
+
+		if ( $allfields ) {
+			$posts = $wpdb->get_results( "SELECT * FROM $wpdb->posts p 
 			WHERE post_status = 'inherit' 
 			AND post_mime_type = 'image/jpeg'
 			AND p.ID NOT IN (SELECT wp_id FROM $table_name)
 			ORDER BY p.ID DESC" );
-		foreach ( $posts as $post_id ) {
-			if ( !wp_attachment_is_image( $post_id ) )
-				continue;
-			array_push( $potentials, $post_id );	 
+		}
+		else {
+			$posts = $wpdb->get_col( "SELECT p.ID FROM $wpdb->posts p 
+			WHERE post_status = 'inherit' 
+			AND post_mime_type = 'image/jpeg'
+			AND p.ID NOT IN (SELECT wp_id FROM $table_name)
+			ORDER BY p.ID DESC" );
+		}
+
+		foreach ( $posts as $post ) {
+			if ( $allfields ) {
+				if ( !wp_attachment_is_image( $post->ID ) )
+					continue;
+				array_push( $potentials, $post );	 
+			}
+			else {
+				if ( !wp_attachment_is_image( $post ) )
+					continue;
+				array_push( $potentials, $post );	 
+			}
 		}
 		return $potentials;
 	}
@@ -352,23 +371,88 @@ class Meow_WPLR_Sync_Core {
 		MEDIA LIBRARY COLUMN
 	*/
 
+	function html_for_media( $wpid, $sync = null ) {
+		$html = "";
+		if ( !$sync ) {
+			$html .= "<div>Unknown</div>";
+			$html .= "<div>
+			<small>LR ID: 
+				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $wpid . "'></input>
+				<span class='wplr-sync-ok-button' onclick='wplrsync_link($wpid)'>Link</span>
+			</small></div>";
+		}
+		else {
+			if ( $sync->lr_id > 0 ) {
+				$html .= "<div style='color: #006EFF;'>Enabled</div>";
+				
+				if ( !strtotime( $sync->lastsync ) )
+					$html .= "<div style='color: #0BF;'><small>Never synced.</small></div>";
+				else {
+					if ( date('Ymd') == date('Ymd', strtotime( $sync->lastsync )) )
+						$html .= "<div><small>Synced at " . date("g:ia", strtotime( $sync->lastsync )) . "</small></div>";
+					else 
+						$html .= "<div><small>Synced on " . date("Y/m/d", strtotime( $sync->lastsync )) . "</small></div>";
+				}
+				$html .= "<div><small>LR ID: " . $sync->lr_id . "</small></div>";
+			}
+			else if ( $sync->lr_id == 0 ) {
+				$html .= "<div style='color: gray;'>Ignored</div>";
+			}
+			$html .= "<small><span class='wplr-sync-ok-button' onclick='wplrsync_unlink($sync->lr_id, $wpid)'>(undo)</span></small>";
+		}
+		return $html;
+	}
+
+	function wplrsync_unlink() {
+		$this->wplrsync_ajax_link_unlink(true);
+	}
+
 	function wplrsync_link() {
+		$this->wplrsync_ajax_link_unlink();
+	}
+
+	function wplrsync_ajax_link_unlink( $is_unlink = false ) {
 		if ( !current_user_can('upload_files') ) {
 			echo json_encode( array( 'success' => false, 'message' => "You do not have the roles to perform this action." ) );
 			die;
 		}
-		if ( !isset( $_POST['lr_id'] ) || !isset( $_POST['wp_id'] ) || empty( $_POST['lr_id'] ) || empty( $_POST['wp_id'] ) ) {
-			echo json_encode( array( 'success' => false, 'message' => "Some information is missing. Is it the LR ID?" ) );
+		if ( !isset( $_POST['lr_id'] ) || $_POST['lr_id'] == "" || !isset( $_POST['wp_id'] ) || empty( $_POST['wp_id'] ) ) {
+			echo json_encode( array( 'success' => false, 'message' => "Some information is missing." ) );
 			die;
 		}
+
 		$lr_id = intval( $_POST['lr_id'] );
 		$wp_id = intval( $_POST['wp_id'] );
-		$result = $this->link_media( $lr_id, $wp_id );
-		if ( $result ) {
-			echo json_encode( array( 'success' => true ) );
+
+		$sync = null;
+		if ( $is_unlink ) {
+			if ( $this->unlink_media( $lr_id, $wp_id ) ) {
+				echo json_encode( array( 
+					'success' => true,
+					'html' => $this->html_for_media( $wp_id, null )
+				) );
+			}
+			else {
+				echo json_encode( array( 
+					'success' => false,
+					'message' => $this->error || "Unknown error."
+				) );
+			}
 		}
 		else {
-			echo json_encode( array( 'success' => false, 'message' => $this->error || "Unknown error." ) );
+			$sync = $this->link_media( $lr_id, $wp_id );
+			if ( $sync ) {
+				echo json_encode( array( 
+					'success' => true,
+					'html' => $this->html_for_media( $wp_id, $sync )
+				) );
+			}
+			else {
+				echo json_encode( array( 
+					'success' => false, 
+					'message' => $this->error || "Unknown error." 
+				) );
+			}
 		}
 		die();
 	}
@@ -400,19 +484,32 @@ class Meow_WPLR_Sync_Core {
 			</style>
 
 			<script>
-				function wplrsync_link(wp_id) {
+
+				function wplrsync_handle_response( wp_id, response ) {
+					reply = jQuery.parseJSON(response);
+					if ( reply.success ) {
+						// Remove box (if in WP/LR Dashboard)
+						jQuery("#wplr-image-box-" + wp_id).remove();
+						// Update row (if in Media Library)
+						jQuery("#wplrsync-media-" + wp_id).html(reply.html);
+					}
+					else {
+						alert(reply.message);
+					}
+				}
+
+				function wplrsync_unlink( lr_id, wp_id ) {
+					var data = { action: "wplrsync_unlink", lr_id: lr_id, wp_id: wp_id };
+					jQuery.post(ajaxurl, data, function (response) {
+						wplrsync_handle_response( wp_id, response );
+					});
+				}
+
+				function wplrsync_link( wp_id ) {
 					lr_id = jQuery("#wplrsync-link-" + wp_id).val();
 					var data = { action: "wplrsync_link", lr_id: lr_id, wp_id: wp_id };
 					jQuery.post(ajaxurl, data, function (response) {
-						reply = jQuery.parseJSON(response);
-						if ( reply.success ) {
-							jQuery("#wplrsync-media-" + wp_id).html("<div style=\'color: #00A380;\'>Enabled</div>" +
-								"<div><small>LR ID: " + lr_id + "</small></div>" +
-								"<div><small>Never synced.</small></div>");
-						}
-						else {
-							alert(reply.message);
-						}
+						wplrsync_handle_response( wp_id, response );
 					});
 				}
 			</script>
@@ -424,44 +521,21 @@ class Meow_WPLR_Sync_Core {
 		return $cols;
 	}
 
-	function manage_media_custom_column( $column_name, $id ) {
+	function manage_media_custom_column( $column_name, $wpid ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
 		if ( $column_name != 'WP/LR Sync' )
 			return;
-		$meta = wp_get_attachment_metadata( $id );
+		$meta = wp_get_attachment_metadata( $wpid );
 		if ( !($meta && isset( $meta['width'] ) && isset( $meta['height'] )) ) {
 			return;
 		}
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE wp_id = %d", $id ), OBJECT );
-		echo "<div id='wplrsync-media-" . $id . "' class='wplr-sync-info'>";
-		if ( !$sync ) {
-			echo "<div>Unknown</div>";
-			// echo "<div><small>Media ID: " . $id . "</small></div>";
-			echo "<div>
-			<small>LR ID: 
-				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $id . "'></input>
-				<span class='wplr-sync-ok-button' onclick='wplrsync_link($id)'>Link</span>
-			</small></div>";
-		}
-		else {
-			if ( $sync->lr_id >= 0 ) {
-				echo "<div style='color: #00A380;'>Enabled</div>";
-				echo "<div><small>LR ID: " . $sync->lr_id . "</small></div>";
-				if ( strtotime( $sync->lastsync ) == 0 )
-					echo "<div><small>Never synced.</small></div>";
-				else {
-					if ( date('Ymd') == date('Ymd', strtotime( $sync->lastsync )) )
-						echo "<div><small>Synced at " . date("g:ia", strtotime( $sync->lastsync )) . "</small></div>";
-					else 
-						echo "<div><small>Synced on " . date("Y/m/d", strtotime( $sync->lastsync )) . "</small></div>";
-				}
-			}
-			else {
-				echo "<span style='color: #00A380;'>Pending</span><br /><small>Media ID: " . $id . "</small>";
-			}
-		}
+		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE wp_id = %d", $wpid ), OBJECT );
+		
+		echo "<div id='wplrsync-media-" . $wpid . "' class='wplr-sync-info'>";
+		echo $this->html_for_media( $wpid, $sync );
 		echo "</div>";
+
 	}
 }
 

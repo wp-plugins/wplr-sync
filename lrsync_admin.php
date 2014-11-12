@@ -9,6 +9,143 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 
 	function admin_menu() {
 		add_submenu_page( 'tools.php', 'WP/LR Sync', 'WP/LR Sync', 'manage_options', 'wplrsync_tools', array( $this, 'tools' ) );
+		add_media_page( 'WP/LR Sync', 'WP/LR Sync', 'manage_options', 'wplrsync', array( $this, 'wplrsync_media' ) ); 
+	}
+
+	function display_image_box( $wpid, $image = null ) {
+		echo "<div id='wplr-image-box-$wpid' class='wplr-image-box'>";
+		echo "<span class='wplr-title-wpid'>Media ID #<a target='_blank' href='post.php?post=$wpid&action=edit'>$wpid</a></span><br />";
+		echo "<a target='_blank' href='post.php?post=$wpid&action=edit'>" . wp_get_attachment_image( $wpid ) . "</a>";
+		echo "<div style='clear: both;'></div>";
+		echo "<span class='wplr-actions'>";
+		if ( $image ) {
+			echo "<a style='background: #B34A4A;' href='upload.php?page=wplrsync&show=duplicates&action=unlink&wpid=$wpid&lrid=$image->lr_id'>Unlink</a>";
+			echo "<a style='' href='upload.php?page=wplrsync&show=duplicates&action=delete&wpid=$wpid&lrid=$image->lr_id'>Delete</a>";
+		}
+		else {
+			echo "<div>
+				LR ID: 
+				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $wpid . "'></input>
+				<a href='#' style='background: #3E79BB;' onclick='wplrsync_link($wpid)'>Link</a>
+			</div>";
+		}
+		echo "</span>";
+
+
+		echo "</div>";
+	}
+
+	function wplrsync_media() {
+		$images = array();
+		global $wpdb;
+		$table_name = $wpdb->prefix . "lrsync";
+		$show = null;
+		if ( isset( $_GET['action'] ) ) {
+			$wpid = isset( $_GET['wpid'] ) ? $_GET['wpid'] : null;
+			$lrid = isset( $_GET['lrid'] ) ? $_GET['lrid'] : null;
+			if ( $_GET['action'] == "link" ) {
+				$this->link_media( $lrid, $wpid );
+			}
+			else if ( $_GET['action'] == "unlink" ) {
+				$this->unlink_media( $lrid, $wpid );
+			}
+			else if ( $_GET['action'] == "delete" ) {
+				$this->unlink_media( $lrid, $wpid );
+				wp_delete_attachment( $wpid );
+			}
+		}
+		
+		if ( isset( $_GET['show'] ) && $_GET['show'] == "duplicates" ) {
+			$show = "duplicates";
+			$images = $wpdb->get_results(
+				"SELECT lr.lr_id, lr.lr_file, GROUP_CONCAT(lr.wp_id SEPARATOR ',') as wpids
+				FROM $wpdb->posts p, $table_name lr
+				WHERE p.ID = lr.wp_id AND lr.lr_id != 0
+				GROUP BY lr.lr_id
+				HAVING COUNT(p.ID) > 1
+				ORDER BY lr.lr_id DESC", OBJECT );
+		}
+		else {
+			$show = "unlinked";
+			$images = $this->list_unlinks( true );
+		}
+		
+		?>
+			<style>
+				
+				.wplr-title-lrid {
+					background: #515151;
+					color: white;
+					padding: 0px 2px;
+					margin-left: 5px;
+				}
+
+				.wplr-duplicates-box {
+					padding: 5px;
+					border: 2px solid  #515151;
+					border-radius: 5px;
+					margin-bottom: 10px;
+				}
+
+				.wplr-image-box {
+					width: 150px;
+					margin-right: 5px;
+					float: left;
+					font-size: 10px;
+				}
+
+				.wplr-title-wpid {
+					font-size: 110%;
+				}
+
+				.wplr-title-wpid a {
+					text-decoration: none;
+				}
+
+				.wplr-actions a {
+					margin-right: 5px;
+					padding: 1px 3px;
+					background: rgb(92, 92, 92);
+					color: white;
+				}
+				
+			</style>
+
+			<div class='wrap'>
+			<div id="icon-upload" class="icon32"><br></div>
+			<h2>WP/LR Sync</h2>
+			<p>You can easily link your unlinked photos through this screen. You can also check if you have any duplicate links (1 LR photo = more than 1 WP photo). Be careful, those actions are <u>instantaneous</u> and <u>unrecoverable</u>.</p>
+			<ul class="subsubsub">
+				<li><a class="<?php echo $show == "unlinked" ? "current" : "" ?>" href="upload.php?page=wplrsync&show=unlinked">Unlinked Photos</a> |</li>
+				<li><a class="<?php echo $show == "duplicates" ? "current" : "" ?>" href="upload.php?page=wplrsync&show=duplicates">Duplicated Links</a></li>
+			</ul>
+			<div style='clear: both; margin-bottom: 18px; margin-top: -5px;'></div>
+
+		<?php
+
+		if ( count( $images ) == 0 && $show == "unlinked" )
+			echo "<div class='updated'><p>There are no unlinked photos. Good job!</p></div>";
+		else if ( count( $images ) == 0 && $show == "duplicates" )
+			echo "<div class='updated'><p>There are no duplicated links.</p></div>";
+		else {
+			foreach ( $images as $image ) {
+				if ( $show == "duplicates" ) {
+					echo "<b class='wplr-title-lrid'>LR ID " . $image->lr_id . "</b> Filename: " . ( $image->lr_file ? $image->lr_file : "Unknown" );
+					echo "<div class='wplr-duplicates-box'>";
+					$wpids = explode( ',', $image->wpids );
+					foreach ( $wpids as $wpid ) {
+						$this->display_image_box( $wpid, $image );
+					}
+					echo "<div style='clear: both;'></div>";
+					echo "</div>";
+				}
+				else if ( $show == "unlinked" ) {
+					$this->display_image_box( $image->ID );
+				}
+			}
+		}
+
+		echo "</div>";
 	}
 
 	function tools() {
@@ -66,12 +203,16 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 					<input type="submit" name="submit" id="submit" class="button button-primary" value="Reset">
 				</form>
 				<form style="float: right; margin-right: 5px;" method="post" action="">
+					<input type="hidden" name="action" value="duplicates">
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="Get Duplicates">
+				</form>
+				<form style="float: right; margin-right: 5px;" method="post" action="">
 					<input type="hidden" name="action" value="scan">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="Get unlinks">
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="Get Unlinked">
 				</form>
 				<form style="float: right; margin-right: 5px;" method="post" action="">
 					<input type="hidden" name="action" value="list">
-					<input type="submit" name="submit" id="submit" class="button button-primary" value="Get links">
+					<input type="submit" name="submit" id="submit" class="button button-primary" value="Get Linked">
 				</form>
 			</span>
 			</h2>
@@ -86,6 +227,9 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 			if ( $action == "reset" ) {
 				$this->reset_db();
 				echo "<div class='updated'><p>The database was reset.</p></div>";
+			}
+			else if ( $action == "duplicates" ) {
+				echo "<div class='updated'><p>Checked duplicates.</p></div>";
 			}
 			else if ( $action == "scan" ) {
 				$unlinks = $this->list_unlinks();
@@ -135,7 +279,7 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 
 			}
 			else if ( $action == "unlink" ) {
-				if ( $this->unlink_media( $_POST['lr_id'] ) )
+				if ( $this->unlink_media( $_POST['lr_id'], $_POST['wp_id'] ) )
 					echo "<div class='updated'><p>Media unlinked.</p></div>";
 				else
 					echo "<div class='error'><p>" . $this->get_error()->message . "</p></div>";
@@ -176,6 +320,14 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 						print_r( $linkinfo );
 						echo '</pre>';
 					}
+					else if ( isset( $_POST['duplicates'] ) && $action == "list" ) {
+
+
+
+						echo '<pre>';
+						print_r( $list );
+						echo '</pre>';
+					}
 				?>
 			</div>
 			
@@ -211,6 +363,10 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 						<tr>
 							<th scope="row"><label for="lr_id">Lr ID</label></th>
 							<td><input name="lr_id" type="text" id="lr_id" value="" class="regular-text code"></td>
+						</tr>
+						<tr>
+							<th scope="row"><label for="wp_id">Media ID</label></th>
+							<td><input name="wp_id" type="text" id="wp_id" value="" class="regular-text code"></td>
 						</tr>
 						<tr>
 							<th scope="row"></th>
