@@ -142,14 +142,14 @@ class Meow_WPLR_Sync_Core {
 	function sync_media( $lrinfo, $tmp_path ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync_results = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
+		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
 		
 		if ( $tmp_path == null || empty( $tmp_path ) ) {
 			$this->error = new IXR_Error( 403, __( "The file was not uploaded." ) );
 			return false;
 		}
 
-		if ( !$sync_results ) {
+		if ( !$sync ) {
 			$upload_dir = wp_upload_dir();
 			$newfile = wp_unique_filename( $upload_dir["path"], $lrinfo->lr_file );
 			$newpath = trailingslashit( $upload_dir["path"] ) . $newfile;
