@@ -8,14 +8,18 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 	}
 
 	function admin_menu() {
-		add_submenu_page( 'tools.php', 'WP/LR Sync', 'WP/LR Sync', 'manage_options', 'wplrsync_tools', array( $this, 'tools' ) );
+		if ( WP_DEBUG ) {
+			add_submenu_page( 'tools.php', 'WP/LR Sync', 'WP/LR Sync', 'manage_options', 'wplrsync_tools', array( $this, 'tools' ) );
+		}
 		add_media_page( 'WP/LR Sync', 'WP/LR Sync', 'manage_options', 'wplrsync', array( $this, 'wplrsync_media' ) ); 
 	}
 
 	function display_image_box( $wpid, $image = null ) {
+		$metadata = wp_get_attachment_image_src( $wpid, "full", false );
+		$filename = $metadata ? $metadata[0] : "";
 		echo "<div id='wplr-image-box-$wpid' class='wplr-image-box'>";
 		echo "<span class='wplr-title-wpid'>Media ID #<a target='_blank' href='post.php?post=$wpid&action=edit'>$wpid</a></span><br />";
-		echo "<a target='_blank' href='post.php?post=$wpid&action=edit'>" . wp_get_attachment_image( $wpid ) . "</a>";
+		echo "<a target='_blank' href='$filename'>" . wp_get_attachment_image( $wpid ) . "</a>";
 		echo "<div style='clear: both;'></div>";
 		echo "<span class='wplr-actions'>";
 		if ( $image ) {
@@ -95,7 +99,12 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 				}
 
 				.wplr-title-wpid {
-					font-size: 110%;
+					font-size: 11px;
+					line-height: 8px;
+				}
+
+				.wplr-title-filename {
+					line-height: 8px;
 				}
 
 				.wplr-title-wpid a {

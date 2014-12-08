@@ -139,128 +139,146 @@ class Meow_WPLR_Sync_Core {
 		return $list;
 	}
 
+	function sync_media_update( $lrinfo, $tmp_path, $sync ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . "lrsync";
+		$wp_id = $sync->wp_id;
+		$meta = wp_get_attachment_metadata( $sync->wp_id );
+		$current_file = get_attached_file( $sync->wp_id );
+		
+		// Support for WP Retina 2x
+		if ( function_exists( 'wr2x_generate_images' ) )
+			wr2x_delete_attachment( $sync->wp_id );
+		
+		$pathinfo = pathinfo( $current_file );
+		$basepath = $pathinfo['dirname'];
+
+		// Let's clean everything first
+		if ( wp_attachment_is_image( $sync->wp_id ) ) {
+			$sizes = $this->get_image_sizes();
+			foreach ($sizes as $name => $attr) {
+				if (isset($meta['sizes'][$name]) && isset($meta['sizes'][$name]['file']) && file_exists( trailingslashit( $basepath ) . $meta['sizes'][$name]['file'] )) {
+					$normal_file = trailingslashit( $basepath ) . $meta['sizes'][$name]['file'];
+					$pathinfo = pathinfo( $normal_file );
+
+					// Support for WP Retina 2x
+					if ( function_exists( 'wr2x_generate_images' ) )
+						$retina_file = trailingslashit( $pathinfo['dirname'] ) . $pathinfo['filename'] . wr2x_retina_extension() . $pathinfo['extension'];
+					
+					// Test if the file exists and if it is actually a file (and not a dir)
+					// Some old WordPress Media Library are sometimes broken and link to directories
+					if ( file_exists( $normal_file ) && is_file( $normal_file ) )
+						unlink( $normal_file );
+
+					// Support for WP Retina 2x
+					if ( function_exists( 'wr2x_generate_images' ) && ( file_exists( $retina_file ) && is_file( $retina_file ) ) )
+							unlink( $retina_file );
+				}
+			}
+		}
+		if ( file_exists( $current_file ) )
+			unlink( $current_file );
+
+		// Insert the new file and delete the temporary one
+		copy( $tmp_path, $current_file );
+		chmod( $current_file, 0644 );
+
+		// Generate the images
+		wp_update_attachment_metadata( $sync->wp_id, wp_generate_attachment_metadata( $sync->wp_id, $current_file ) );
+
+		// Update Title, Description and Caption
+		if ( $lrinfo->sync_title || $lrinfo->sync_caption || $lrinfo->sync_desc ) {
+			$post = array( 'ID' => $wp_id );
+			if ( $lrinfo->sync_title )
+				$post['post_title'] = $lrinfo->lr_title;
+			if ( $lrinfo->sync_desc )
+				$post['post_content'] = $lrinfo->lr_desc;
+			if ( $lrinfo->sync_caption )
+				$post['post_excerpt'] = $lrinfo->lr_caption;
+			wp_update_post( $post );
+		}
+		
+		// Update Alt Text if needed
+		if ( $lrinfo->sync_alt_text )
+				update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
+
+		// Support for WP Retina 2x
+		if ( function_exists( 'wr2x_generate_images' ) )
+			wr2x_generate_images( wp_get_attachment_metadata( $sync->wp_id ) );
+
+		$wpdb->query( $wpdb->prepare( "UPDATE $table_name 
+			SET lr_file = %s, lastsync = NOW()
+			WHERE lr_id = %d", $lrinfo->lr_file, $lrinfo->lr_id ) 
+		);
+	}
+
+	function sync_media_add( $lrinfo, $tmp_path ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . "lrsync";
+		$upload_dir = wp_upload_dir();
+		$newfile = wp_unique_filename( $upload_dir["path"], $lrinfo->lr_file );
+		$newpath = trailingslashit( $upload_dir["path"] ) . $newfile;
+		if ( !@rename( $tmp_path, $newpath ) )
+		{
+			$this->error = new IXR_Error( 403, __( "Could not copy the file." ) );
+			return false;
+		}
+		$wp_upload_dir = wp_upload_dir();
+		if ( !$wp_id = wp_insert_attachment( array(
+			'guid' => $wp_upload_dir['url'] . '/' . basename( $newpath ),
+			'post_title' => $lrinfo->lr_title,
+			'post_content' => $lrinfo->lr_desc,
+			'post_excerpt' => $lrinfo->lr_caption,
+			'post_mime_type' => $lrinfo->type,
+			'post_status' => "inherit",
+		), $newpath ) ) {
+			$this->error = new IXR_Error( 403, __( "Could not insert attachment for " . $newpath ) );
+			return false;
+		}
+		$attach_data = wp_generate_attachment_metadata( $wp_id, $newpath );
+		wp_update_attachment_metadata( $wp_id, $attach_data );
+		
+		// Create Alt Text
+		update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
+
+		// Support for WP Retina 2x
+		if ( function_exists( 'wr2x_generate_images' ) ) {
+			wr2x_generate_images( $attach_data );
+		}
+
+		$wpdb->insert( $table_name, 
+			array( 
+				'wp_id' => $wp_id,
+				'lr_id' => ( $lrinfo->lr_id == "" || $lrinfo->lr_id == null ) ? -1 : $lrinfo->lr_id,
+				'lr_file' => $lrinfo->lr_file,
+				'lastsync' => current_time('mysql')
+			) 
+		);
+		return true;
+	}
+
 	function sync_media( $lrinfo, $tmp_path ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
+		$sync_files = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
 		
 		if ( $tmp_path == null || empty( $tmp_path ) ) {
 			$this->error = new IXR_Error( 403, __( "The file was not uploaded." ) );
 			return false;
 		}
 
-		if ( !$sync ) {
-			$upload_dir = wp_upload_dir();
-			$newfile = wp_unique_filename( $upload_dir["path"], $lrinfo->lr_file );
-			$newpath = trailingslashit( $upload_dir["path"] ) . $newfile;
-			if ( !@rename( $tmp_path, $newpath ) )
-			{
-				$this->error = new IXR_Error( 403, __( "Could not move the file." ) );
+		if ( !$sync_files ) {
+			if ( !$this->sync_media_add( $lrinfo, $tmp_path ) )
 				return false;
-			}
-			$wp_upload_dir = wp_upload_dir();
-			if ( !$wp_id = wp_insert_attachment( array(
-				'guid' => $wp_upload_dir['url'] . '/' . basename( $newpath ),
-				'post_title' => $lrinfo->lr_title,
-				'post_content' => $lrinfo->lr_desc,
-				'post_excerpt' => $lrinfo->lr_caption,
-				'post_mime_type' => $lrinfo->type,
-				'post_status' => "inherit",
-			), $newpath ) ) {
-				$this->error = new IXR_Error( 403, __( "Could not insert attachment for " . $newpath ) );
-				return false;
-			}
-			$attach_data = wp_generate_attachment_metadata( $wp_id, $newpath );
-			wp_update_attachment_metadata( $wp_id, $attach_data );
-			
-			// Create Alt Text
-			update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
-
-			// Support for WP Retina 2x
-			if ( function_exists( 'wr2x_generate_images' ) ) {
-				wr2x_generate_images( $attach_data );
-			}
-
-			$wpdb->insert( $table_name, 
-				array( 
-					'wp_id' => $wp_id,
-					'lr_id' => ( $lrinfo->lr_id == "" || $lrinfo->lr_id == null ) ? -1 : $lrinfo->lr_id,
-					'lr_file' => $lrinfo->lr_file,
-					'lastsync' => current_time('mysql')
-				) 
-			);
 		}
 		else {
-			$wp_id = $sync->wp_id;
-			$meta = wp_get_attachment_metadata( $sync->wp_id );
-			$current_file = get_attached_file( $sync->wp_id );
-			
-			// Support for WP Retina 2x
-			if ( function_exists( 'wr2x_generate_images' ) )
-				wr2x_delete_attachment( $sync->wp_id );
-			
-			$pathinfo = pathinfo( $current_file );
-			$basepath = $pathinfo['dirname'];
-
-			// Let's clean everything first
-			if ( wp_attachment_is_image( $sync->wp_id ) ) {
-				$sizes = $this->get_image_sizes();
-				foreach ($sizes as $name => $attr) {
-					if (isset($meta['sizes'][$name]) && isset($meta['sizes'][$name]['file']) && file_exists( trailingslashit( $basepath ) . $meta['sizes'][$name]['file'] )) {
-						$normal_file = trailingslashit( $basepath ) . $meta['sizes'][$name]['file'];
-						$pathinfo = pathinfo( $normal_file );
-
-						// Support for WP Retina 2x
-						if ( function_exists( 'wr2x_generate_images' ) )
-							$retina_file = trailingslashit( $pathinfo['dirname'] ) . $pathinfo['filename'] . wr2x_retina_extension() . $pathinfo['extension'];
-						
-						// Test if the file exists and if it is actually a file (and not a dir)
-						// Some old WordPress Media Library are sometimes broken and link to directories
-						if ( file_exists( $normal_file ) && is_file( $normal_file ) )
-							unlink( $normal_file );
-
-						// Support for WP Retina 2x
-						if ( function_exists( 'wr2x_generate_images' ) && ( file_exists( $retina_file ) && is_file( $retina_file ) ) )
-								unlink( $retina_file );
-					}
-				}
+			foreach ( $sync_files as $sync ) {
+				$this->sync_media_update( $lrinfo, $tmp_path, $sync );
 			}
-			if ( file_exists($current_file) )
-				unlink( $current_file );
-
-			// Insert the new file and delete the temporary one
-			rename( $tmp_path, $current_file );
-			chmod( $current_file, 0644 );
-
-			// Generate the images
-			wp_update_attachment_metadata( $sync->wp_id, wp_generate_attachment_metadata( $sync->wp_id, $current_file ) );
-
-			// Update Title, Description and Caption
-			if ( $lrinfo->sync_title || $lrinfo->sync_caption || $lrinfo->sync_desc ) {
-				$post = array( 'ID' => $wp_id );
-				if ( $lrinfo->sync_title )
-					$post['post_title'] = $lrinfo->lr_title;
-				if ( $lrinfo->sync_desc )
-					$post['post_content'] = $lrinfo->lr_desc;
-				if ( $lrinfo->sync_caption )
-					$post['post_excerpt'] = $lrinfo->lr_caption;
-				wp_update_post( $post );
-			}
-			
-			// Update Alt Text if needed
-			if ( $lrinfo->sync_alt_text )
-					update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
-
-			// Support for WP Retina 2x
-			if ( function_exists( 'wr2x_generate_images' ) )
-				wr2x_generate_images( wp_get_attachment_metadata( $sync->wp_id ) );
-
-			$wpdb->query( $wpdb->prepare( "UPDATE $table_name 
-				SET lr_file = %s, lastsync = NOW()
-				WHERE lr_id = %d", $lrinfo->lr_file, $lrinfo->lr_id ) 
-			);
+			unlink( $tmp_path );
 		}
 
+		// Returns only one result even if there are many.
 		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
 		$info = Meow_WPLR_LRInfo::fromRow( $sync );
 		return $info;

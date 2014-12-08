@@ -36,6 +36,9 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
 
+= 0.5 =
+* Fix: Many WP images linked to same LR image? They now all update, instead of only the first one previously.
+
 = 0.4 =
 * Fix: Title was not being updated properly during sync.
 
