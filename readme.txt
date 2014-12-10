@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
 Requires at least: 3.5
 Tested up to: 4.0
-Stable tag: 0.4
+Stable tag: 0.6
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -36,7 +36,7 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
 
-= 0.5 =
+= 0.6 =
 * Fix: Many WP images linked to same LR image? They now all update, instead of only the first one previously.
 
 = 0.4 =
