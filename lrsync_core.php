@@ -85,11 +85,19 @@ class Meow_WPLR_Sync_Core {
 	function unlink_media( $lr_id, $wp_id ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d AND wp_id = %d", $lr_id, $wp_id), OBJECT );
-		if ( $sync ) {
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d AND wp_id = %d", $sync->lr_id, $sync->wp_id ) );
+		
+		if ( $wp_id ) {
+			$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d AND wp_id = %d", $lr_id, $wp_id), OBJECT );
+			if ( $sync ) {
+				$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d AND wp_id = %d", $sync->lr_id, $sync->wp_id ) );
+				return true;
+			}
+		}
+		else {
+			$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d", $sync->lr_id ) );
 			return true;
 		}
+
 		$this->error = new IXR_Error( 403, __( "There is no link for this media." ) );
 		return false;
 	}
