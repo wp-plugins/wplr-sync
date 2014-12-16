@@ -28,7 +28,7 @@ class Meow_WPLR_Sync_Core {
 	}
 
 	function media_options_callback() {
-		echo "<p>Those settings should be used for debugging purposes only.</p>";
+		echo "<p>This option will add a dashboard specific to WP/LR Sync in the Media menu.</p>";
 	}
 
 	function toggle_content_callback( $args ) {
@@ -62,12 +62,16 @@ class Meow_WPLR_Sync_Core {
 	function delete_media( $lr_id ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lr_id), OBJECT );
-		if ( $sync ) {
+		$sync_files = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lr_id), OBJECT );
+		$delete_count = 0;
+		foreach ( $sync_files as $sync ) {
 			if ( wp_delete_attachment( $sync->wp_id ) ) {
 				$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d", $lr_id ) );
-				return true;
+				$delete_count++;
 			}
+		}
+		if ( $delete_count > 0 ) {
+			return true;
 		}
 		$this->error = new IXR_Error( 403, __( "The attachment could not be removed." ) );
 		return false;
@@ -76,10 +80,7 @@ class Meow_WPLR_Sync_Core {
 	function delete_attachment( $wp_id ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
-		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE wp_id = %d", $wp_id), OBJECT );
-		if ( $sync ) {
-			$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE lr_id = %d", $sync->lr_id ) );
-		}
+		$wpdb->query( $wpdb->prepare( "DELETE FROM $table_name WHERE wp_id = %d", $wp_id ) );
 	}
 
 	function unlink_media( $lr_id, $wp_id ) {
@@ -411,7 +412,7 @@ class Meow_WPLR_Sync_Core {
 			if ( $sync->lr_id > 0 ) {
 				$html .= "<div style='color: #006EFF;'>Enabled</div>";
 				
-				if ( !strtotime( $sync->lastsync ) )
+				if ( !strtotime( $sync->lastsync ) || $sync->lastsync == "0000-00-00 00:00:00" )
 					$html .= "<div style='color: #0BF;'><small>Never synced.</small></div>";
 				else {
 					if ( date('Ymd') == date('Ymd', strtotime( $sync->lastsync )) )

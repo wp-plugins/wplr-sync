@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
 Requires at least: 3.5
 Tested up to: 4.0
-Stable tag: 0.7
+Stable tag: 0.8
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -35,6 +35,10 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 == Screenshots ==
 
 == Changelog ==
+
+= 0.8 =
+* Fix: Duplicate files are now all deleted on WP when the LR photo is removed (against only the first one before).
+* Info: Minor and major number of the most current version between the WP and LR plugins will always match from now.
 
 = 0.7 =
 * Add: Undo function available.
