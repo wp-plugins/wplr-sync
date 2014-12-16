@@ -22,7 +22,8 @@ Languages: English.
 
 1. Upload `wp-lrsync` to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. In 'Media', there is a new WP/LR Sync section. Check it out :)
+3. Install the Lightroom plugin from here: http://apps.meow.fr/wplr-sync 
+4. Synchronize everything :)
 
 == Upgrade Notice ==
 
@@ -60,3 +61,9 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 = 0.1 =
 * First release.
+
+== Screenshots ==
+
+1. Settings in the WP/LR Sync Lightroom Publish Service
+2. Total Synchronization Module
+3. Advanced Tab in Total Synchronization
