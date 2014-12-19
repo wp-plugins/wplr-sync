@@ -135,6 +135,15 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		return $this->unlink_media( $lr_id, $wp_id );
 	}
 
+	// Get WP IDs for a given LR ID
+	function rpc_list_wpids( $args ) {
+		if ( !$user = $this->rpc_init_with( $args ) ) {
+			return $this->error;
+		}
+		$lr_id = $args[0];
+		return $this->list_wpids( $lr_id );
+	}
+
 	function xmlrpc_methods( $methods ) {
 		$methods['lrsync.ping'] = array( $this, 'rpc_ping' );
 		$methods['lrsync.sync'] = array( $this, 'rpc_sync' );
@@ -146,6 +155,7 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		$methods['lrsync.linkinfo'] = array( $this, 'rpc_linkinfo' );
 		$methods['lrsync.linkinfo_upload'] = array( $this, 'rpc_linkinfo_upload' );
 		$methods['lrsync.userinfo'] = array( $this, 'rpc_userinfo' );
+		$methods['lrsync.list_wpids'] = array( $this, 'rpc_list_wpids' );
 		return $methods;
 	}
 

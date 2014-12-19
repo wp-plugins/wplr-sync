@@ -3,8 +3,8 @@ Contributors: TigrouMeow
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=H2S7S3G4XMJ6J
 Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
 Requires at least: 3.5
-Tested up to: 4.1
-Stable tag: 0.8.2
+Tested up to: 4.0
+Stable tag: 0.8.3
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -35,13 +35,9 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Screenshots ==
 
-1. Publish Service Settings
-2. Total Synchronization - Matching
-3. Total Synchronization - Advanced
-
 == Changelog ==
 
-= 0.8.2 =
+= 0.8.3 =
 * Add: Handlers of new module in the LR plugin (module to swich photos).
 * Info: In preparation of the future release of the LR plugin (1.2).
 

@@ -344,6 +344,14 @@ class Meow_WPLR_Sync_Core {
 		);
 	}
 
+	// Returns an array of wp_id linked to this lr_id
+	function list_wpids( $lr_id ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . "lrsync";
+		$wp_ids = $wpdb->get_results( $wpdb->prepare( "SELECT p.wp_id FROM $table_name p WHERE p.lr_id = %d", $lr_id ) );
+		return $wp_ids;
+	}
+
 	function list_unlinks( $allfields = false ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
