@@ -33,8 +33,6 @@ Replace all the files. Nothing else to do.
 
 Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
-== Screenshots ==
-
 == Changelog ==
 
 = 0.8.3 =
