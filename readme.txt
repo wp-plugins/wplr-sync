@@ -3,8 +3,8 @@ Contributors: TigrouMeow
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=H2S7S3G4XMJ6J
 Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
 Requires at least: 3.5
-Tested up to: 4.0
-Stable tag: 0.8.5
+Tested up to: 4.1
+Stable tag: 0.8.6
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -35,11 +35,11 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
 
-= 0.8.5 =
-* Add: Ignore button.
-* Add: Post attachment information and showing the titles of post and media when hovering the links.
-* Fix: When linking a media, the page doesn't scroll up annoyingly to the top anymore.
-* Info: Merry Christmas everyone :)
+= 0.8.6 =
+Add: Ignore button.
+Add: Post attachment information and showing the titles of post and media when hovering the links.
+Fix: When linking a media, the page doesn't scroll up annoyingly to the top anymore.
+Info: If you like the plugin, please help me finding new users! Adding a review on the Adobe Exchange could help, here: https://www.adobeexchange.com/partners/29997/products. Thank you all! Merry Christmas & Happy Holidays! :)
 
 = 0.8.3 =
 * Add: Handlers of new module in the LR plugin (module to swich photos).
