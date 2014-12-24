@@ -503,7 +503,7 @@ class Meow_WPLR_Sync_Core {
 					padding: 2px 8px;
 					border-radius: 7px;
 					text-transform: uppercase;
-					margin-left: 3px;
+					margin-left: 1px;
 				}
 
 				.wplr-button:hover {
