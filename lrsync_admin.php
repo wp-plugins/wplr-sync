@@ -16,10 +16,21 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 
 	function display_image_box( $wpid, $image = null ) {
 		$metadata = wp_get_attachment_image_src( $wpid, "full", false );
+		$parent = wp_get_post_parent_id( $wpid );
+		$title = get_the_title( $wpid  );
+		$parent_title = $parent ? get_the_title( $parent ) : "";
 		$filename = $metadata ? $metadata[0] : "";
 		echo "<div id='wplr-image-box-$wpid' class='wplr-image-box'>";
-		echo "<span class='wplr-title-wpid'>Media ID #<a target='_blank' href='post.php?post=$wpid&action=edit'>$wpid</a></span><br />";
-		echo "<a target='_blank' href='$filename'>" . wp_get_attachment_image( $wpid ) . "</a>";
+		echo "<div class='wplr-title-wpid'>";
+		echo "Media #<a target='_blank' title='$title' href='post.php?post=$wpid&action=edit'>$wpid</a>";
+		if ( $parent ) {
+			echo "<span style='float: right;'>Post #<a title='$parent_title' target='_blank' href='post.php?post=$parent&action=edit'>$parent</a></span><br />";
+		}
+		echo "</div>";
+
+		echo "<div class='wplr-image'>";
+		echo "<a target='_blank' title='$title' href='$filename'>" . wp_get_attachment_image( $wpid, array( 190, 190 ), false, array( 'alt' => $title ) ) . "</a>";
+		echo "</div>";
 		echo "<div style='clear: both;'></div>";
 		echo "<span class='wplr-actions'>";
 		if ( $image ) {
@@ -30,7 +41,8 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 			echo "<div>
 				LR ID: 
 				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $wpid . "'></input>
-				<a href='#' style='background: #3E79BB;' onclick='wplrsync_link($wpid)'>Link</a>
+				<div class='wplr-button wplr-button-link' onclick='wplrsync_link($wpid)'>Link</div>
+				<div class='wplr-button wplr-button-link' onclick='wplrsync_link($wpid, true)'>Ignore</div>
 			</div>";
 		}
 		echo "</span>";
@@ -76,7 +88,7 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 		
 		?>
 			<style>
-				
+
 				.wplr-title-lrid {
 					background: #515151;
 					color: white;
@@ -92,15 +104,25 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 				}
 
 				.wplr-image-box {
-					width: 150px;
-					margin-right: 5px;
+					width: 190px;
+					margin-right: 10px;
 					float: left;
 					font-size: 10px;
+					background: white;
+					padding: 2px 5px;
+					margin-bottom: 10px;
+					box-shadow: 2px 2px 2px #D7D7D7;
+				}
+
+				.wplr-image-box .wplr-image {
+					width: 190px;
+					height: 128px;
+					overflow: hidden;
 				}
 
 				.wplr-title-wpid {
 					font-size: 11px;
-					line-height: 8px;
+					line-height: 20px;
 				}
 
 				.wplr-title-filename {
@@ -123,7 +145,8 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 			<div class='wrap'>
 			<div id="icon-upload" class="icon32"><br></div>
 			<h2>WP/LR Sync</h2>
-			<p>You can easily link your unlinked photos through this screen. You can also check if you have any duplicate links (1 LR photo = more than 1 WP photo). Be careful, those actions are <u>instantaneous</u> and <u>unrecoverable</u>.</p>
+			<p>This screen will help you to link your unlinked photos between WordPress and Lightroom. <b>Don't forget that if you link a photo from here you also need to also add it manually to the WP/LR Service in Lightroom.</b>
+			Last but not least, be careful with the actions in the 'Duplicated Links', the actions are <u>instantaneous</u> and the 'Delete' is <u>unrecoverable</u>.</p>
 			<ul class="subsubsub">
 				<li><a class="<?php echo $show == "unlinked" ? "current" : "" ?>" href="upload.php?page=wplrsync&show=unlinked">Unlinked Photos</a> |</li>
 				<li><a class="<?php echo $show == "duplicates" ? "current" : "" ?>" href="upload.php?page=wplrsync&show=duplicates">Duplicated Links</a></li>

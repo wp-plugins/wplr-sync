@@ -413,7 +413,7 @@ class Meow_WPLR_Sync_Core {
 			$html .= "<div>
 			<small>LR ID: 
 				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $wpid . "'></input>
-				<span class='wplr-sync-ok-button' onclick='wplrsync_link($wpid)'>Link</span>
+				<span class='wplr-button' onclick='wplrsync_link($wpid)'>Link</span>
 			</small></div>";
 		}
 		else {
@@ -433,7 +433,7 @@ class Meow_WPLR_Sync_Core {
 			else if ( $sync->lr_id == 0 ) {
 				$html .= "<div style='color: gray;'>Ignored</div>";
 			}
-			$html .= "<small><span class='wplr-sync-ok-button' onclick='wplrsync_unlink($sync->lr_id, $wpid)'>(undo)</span></small>";
+			$html .= "<small><span class='wplr-link-undo' onclick='wplrsync_unlink($sync->lr_id, $wpid)'>(undo)</span></small>";
 		}
 		return $html;
 	}
@@ -496,24 +496,39 @@ class Meow_WPLR_Sync_Core {
 		echo '
 			<style type="text/css">
 
+				.wplr-button {
+					background: #3E79BB;
+					color: white;
+					display: inline;
+					padding: 2px 8px;
+					border-radius: 7px;
+					text-transform: uppercase;
+					margin-left: 3px;
+				}
+
+				.wplr-button:hover {
+					cursor: pointer;
+					background: #5D93CF;
+				}
+
+				.wplr-link-undo {
+					color: #5E5E5E;
+				}
+
+				.wplr-link-undo:hover {
+					cursor: pointer;
+					color: #2ea2cc;
+				}
+
 				.wplr-sync-info {
 					line-height: 14px;
 				}
 
 				.wplr-sync-lrid-input {
-					width: 60px;
+					width: 56px;
 					font-size: 10px;
 					font-weight: bold;
 					color: black !important;
-				}
-
-				.wplr-sync-ok-button {
-					color: #5E5E5E;
-				}
-
-				.wplr-sync-ok-button:hover {
-					cursor: pointer;
-					color: #2ea2cc;
 				}
 
 			</style>
@@ -540,8 +555,13 @@ class Meow_WPLR_Sync_Core {
 					});
 				}
 
-				function wplrsync_link( wp_id ) {
-					lr_id = jQuery("#wplrsync-link-" + wp_id).val();
+				function wplrsync_link( wp_id, ignore ) {
+					if (!ignore) {
+						lr_id = jQuery("#wplrsync-link-" + wp_id).val();
+					}
+					else {
+						lr_id = 0;
+					}
 					var data = { action: "wplrsync_link", lr_id: lr_id, wp_id: wp_id };
 					jQuery.post(ajaxurl, data, function (response) {
 						wplrsync_handle_response( wp_id, response );
