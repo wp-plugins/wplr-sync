@@ -40,7 +40,7 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 		else {
 			echo "<div>
 				LR ID: 
-				<input type='text' class='wplr-sync-lrid-input' id='wplrsync-link-" . $wpid . "'></input>
+				<input type='text' class='wplr-sync-lrid-input wplrsync-link-" . $wpid . "'></input>
 				<div class='wplr-button wplr-button-link' onclick='wplrsync_link($wpid)'>Link</div>
 				<div class='wplr-button wplr-button-link' onclick='wplrsync_link($wpid, true)'>Ignore</div>
 			</div>";
@@ -138,6 +138,10 @@ class Meow_WPLR_Sync_Admin extends Meow_WPLR_Sync_RPC {
 					padding: 1px 3px;
 					background: rgb(92, 92, 92);
 					color: white;
+				}
+
+				.subsubsub #icl_subsubsub, .subsubsub br {
+					display: none;
 				}
 				
 			</style>

@@ -24,6 +24,7 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 			$this->error = new IXR_Error( 403, __( 'You do not have permission to upload files.' ) );
 			return false;
 		}
+
 		return $user;
 	}
 
@@ -53,7 +54,6 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		$lrinfo->sync_caption = $fileinfo["syncCaption"];
 		$lrinfo->sync_desc = $fileinfo["syncDesc"];
 		$lrinfo->sync_alt_text = $fileinfo["syncAltText"];
-
 		$lrinfo->type = $fileinfo["type"];
 		$file = $this->b64_to_file( $fileinfo["data"] );
 		if ( !$sync = $this->sync_media( $lrinfo, $file ) )
@@ -93,8 +93,8 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		if ( !$user = $this->rpc_init_with( $args ) ) {
 			return $this->error;
 		}
-		$inkinfo = $this->linkinfo_media( $args[0] );
-		return $inkinfo;
+		$linkinfo = $this->linkinfo_media( $args[0] );
+		return $linkinfo;
 	}
 
 	// Get LinkInfo for the upload
@@ -103,8 +103,8 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 			return $this->error;
 		}
 		$file = $this->b64_to_file( $args[0] );
-		$inkinfo = $this->linkinfo_upload( $file, null );
-		return $inkinfo;
+		$linkinfo = $this->linkinfo_upload( $file, null );
+		return $linkinfo;
 	}
 
 	// Get LinkInfo for the Media ID
