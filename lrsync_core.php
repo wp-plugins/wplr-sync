@@ -11,7 +11,6 @@ class Meow_WPLR_Sync_Core {
 		add_action( 'wp_ajax_wplrsync_link', array( $this, 'wplrsync_link' ) );
 		add_action( 'wp_ajax_wplrsync_unlink', array( $this, 'wplrsync_unlink' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
-
 	}
 
 	/*
@@ -60,17 +59,20 @@ class Meow_WPLR_Sync_Core {
 	}
 
 	function wpml_original_id( $wpid ) {
-		if ( function_exists( 'icl_object_id' ) ) {
+		if ( $this->wpml_is_installed() ) {
 			global $sitepress;
 			$language = $sitepress->get_default_language( $wpid );
-			//return $this->get_translated_media_or_original();
 			return icl_object_id( $wpid, 'attachment', true, $language );
 		}
 		return $wpid;
 	}
 
+	function wpml_is_installed() {
+		return function_exists( 'icl_object_id' ) && !class_exists( 'Polylang' );
+	}
+
 	function wpml_original_array( $wpids ) {
-		if ( function_exists( 'icl_object_id' ) ) {
+		if ( $this->wpml_is_installed() ) {
 			for ($c = 0; $c < count( $wpids ); $c++ ) {
 				$wpids[$c] = $this->wpml_original_id( $wpids[$c] );
 			}
@@ -180,22 +182,51 @@ class Meow_WPLR_Sync_Core {
 		return $list;
 	}
 
+	function update_metadata( $wp_id, $lrinfo, $isTranslation = false ) {
+		// Update Title, Description and Caption
+
+		$meta = null;
+		if ( $isTranslation ) {
+			$meta = get_post( $wp_id, ARRAY_A );
+		}
+
+		// Update Title, Caption and Desc (if needed)
+		if ( $lrinfo->sync_title || $lrinfo->sync_caption || $lrinfo->sync_desc ) {
+			$post = array( 'ID' => $wp_id );
+			if ( $lrinfo->sync_title && ( !$meta || empty( $meta['post_title'] ) ) )
+				$post['post_title'] = $lrinfo->lr_title;
+			if ( $lrinfo->sync_desc && ( !$meta || empty( $meta['post_content'] ) ) )
+				$post['post_content'] = $lrinfo->lr_desc;
+			if ( $lrinfo->sync_caption && ( !$meta || empty( $meta['post_excerpt'] ) ) )
+				$post['post_excerpt'] = $lrinfo->lr_caption;
+			wp_update_post( $post );
+		}
+		
+		// Update Alt Text if needed
+		if ( $lrinfo->sync_alt_text ) {
+			if ( $isTranslation )
+				$meta_alt = get_post_meta( $wp_id, '_wp_attachment_image_alt', true );
+			if ( !$isTranslation || empty( $meta_alt ) )
+				update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
+		}
+	}
+
 	function sync_media_update( $lrinfo, $tmp_path, $sync ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . "lrsync";
 		$wp_id = $sync->wp_id;
-		$meta = wp_get_attachment_metadata( $sync->wp_id );
-		$current_file = get_attached_file( $sync->wp_id );
+		$meta = wp_get_attachment_metadata( $wp_id );
+		$current_file = get_attached_file( $wp_id );
 		
 		// Support for WP Retina 2x
 		if ( function_exists( 'wr2x_generate_images' ) )
-			wr2x_delete_attachment( $sync->wp_id );
+			wr2x_delete_attachment( $wp_id );
 		
 		$pathinfo = pathinfo( $current_file );
 		$basepath = $pathinfo['dirname'];
 
 		// Let's clean everything first
-		if ( wp_attachment_is_image( $sync->wp_id ) ) {
+		if ( wp_attachment_is_image( $wp_id ) ) {
 			$sizes = $this->get_image_sizes();
 			foreach ($sizes as $name => $attr) {
 				if (isset($meta['sizes'][$name]) && isset($meta['sizes'][$name]['file']) && file_exists( trailingslashit( $basepath ) . $meta['sizes'][$name]['file'] )) {
@@ -225,27 +256,25 @@ class Meow_WPLR_Sync_Core {
 		chmod( $current_file, 0644 );
 
 		// Generate the images
-		wp_update_attachment_metadata( $sync->wp_id, wp_generate_attachment_metadata( $sync->wp_id, $current_file ) );
+		wp_update_attachment_metadata( $wp_id, wp_generate_attachment_metadata( $wp_id, $current_file ) );
 
-		// Update Title, Description and Caption
-		if ( $lrinfo->sync_title || $lrinfo->sync_caption || $lrinfo->sync_desc ) {
-			$post = array( 'ID' => $wp_id );
-			if ( $lrinfo->sync_title )
-				$post['post_title'] = $lrinfo->lr_title;
-			if ( $lrinfo->sync_desc )
-				$post['post_content'] = $lrinfo->lr_desc;
-			if ( $lrinfo->sync_caption )
-				$post['post_excerpt'] = $lrinfo->lr_caption;
-			wp_update_post( $post );
+		// Update metadata
+		$this->update_metadata( $wp_id, $lrinfo );
+
+		// If there are translations, maybe they need to be updated too!
+		if ( $this->wpml_is_installed() ) {
+			global $sitepress;
+			$trid = $sitepress->get_element_trid( $wp_id, 'post_attachment' );
+			$translations = $sitepress->get_element_translations( $trid, 'post_attachment' );
+			foreach( $translations as $k => $v ) {
+				if ( $v->element_id != $wp_id )
+					$this->update_metadata( $v->element_id, $lrinfo, true );
+			}
 		}
-		
-		// Update Alt Text if needed
-		if ( $lrinfo->sync_alt_text )
-				update_post_meta( $wp_id, '_wp_attachment_image_alt', $lrinfo->lr_alt_text );
 
 		// Support for WP Retina 2x
 		if ( function_exists( 'wr2x_generate_images' ) )
-			wr2x_generate_images( wp_get_attachment_metadata( $sync->wp_id ) );
+			wr2x_generate_images( wp_get_attachment_metadata( $wp_id ) );
 
 		$wpdb->query( $wpdb->prepare( "UPDATE $table_name 
 			SET lr_file = %s, lastsync = NOW()
@@ -391,7 +420,7 @@ class Meow_WPLR_Sync_Core {
 		$potentials = array();
 
 		$whereIsOriginal = "";
-		if ( function_exists( 'icl_object_id' ) ) {
+		if ( $this->wpml_is_installed() ) {
 			global $sitepress;
 			$tbl_wpml = $wpdb->prefix . "icl_translations";
 			$language = $sitepress->get_default_language();
@@ -434,16 +463,25 @@ class Meow_WPLR_Sync_Core {
 		UTILS FUNCTIONS
 	*/
 
+	// This function should not work even with HVVM
 	function b64_to_file( $str ) {
-		$tmpHandle = tmpfile();
-		$metaDatas = stream_get_meta_data($tmpHandle);
-		$file = $metaDatas['uri'];
-		fclose($tmpHandle);
+		$file = tempnam( sys_get_temp_dir(), "wplr" );
 		$ifp = fopen( $file, "wb" );
 		fwrite( $ifp, base64_decode( $str ) );
 		fclose( $ifp );
 		return $file;
 	}
+
+	// function b64_to_file( $str ) {
+	// 	$tmpHandle = tmpfile();
+	// 	$metaDatas = stream_get_meta_data($tmpHandle);
+	// 	$file = $metaDatas['uri'];
+	// 	fclose($tmpHandle);
+	// 	$ifp = fopen( $file, "wb" );
+	// 	fwrite( $ifp, base64_decode( $str ) );
+	// 	fclose( $ifp );
+	// 	return $file;
+	// }
 
 	/*
 		MEDIA LIBRARY COLUMN

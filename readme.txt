@@ -1,10 +1,10 @@
 === WP/LR Sync ===
 Contributors: TigrouMeow
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=H2S7S3G4XMJ6J
-Tags: management, admin, export, media, image, images, photos, lightroom, photoshop
+Tags: lightroom, photoshop, sync, synchronization, image, management, admin, export, media, image, photo
 Requires at least: 3.5
-Tested up to: 4.1
-Stable tag: 0.8.8
+Tested up to: 4.2.0
+Stable tag: 1.2.4
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -35,6 +35,16 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
 
+= 1.2.4 =
+* Add: Update the empty WP metadata with the LR data.
+
+= 1.2.2 =
+* Fix: Change on how temporary files are created (to support HHVM).
+
+= 1.2.0 =
+* Add: Additional features to support WPML Media.
+* Update: Switch Photos module enabled in LR.
+
 = 0.8.8 =
 * Add: Compatibility with WPML Media (translation plugin for the media images).
 * Info: WPML Media needs to change something on their side for full support. Please check this post: http://apps.meow.fr/wpml-media-and-wplr-sync/.
@@ -46,7 +56,7 @@ Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 * Info: If you like the plugin, please help me finding new users! Adding a review on the Adobe Exchange could help, here: https://www.adobeexchange.com/partners/29997/products. Thank you all! Merry Christmas & Happy Holidays! :)
 
 = 0.8.3 =
-* Add: Handlers of new module in the LR plugin (module to swich photos).
+* Add: Handlers of new module in the LR plugin (module to switch photos).
 * Info: In preparation of the future release of the LR plugin (1.2).
 
 = 0.8 =
