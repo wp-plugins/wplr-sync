@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: lightroom, photoshop, sync, synchronization, image, management, admin, export, media, image, photo
 Requires at least: 3.5
 Tested up to: 4.2.0
-Stable tag: 1.2.4
+Stable tag: 1.3.0
 
 Synchronize your photos and metadata between Lightroom and WordPress.
 
@@ -34,6 +34,9 @@ Replace all the files. Nothing else to do.
 Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
+
+= 1.3.0 =
+* Add: Presync. PHP settings are sent to LR to prevent errors.
 
 = 1.2.4 =
 * Add: Update the empty WP metadata with the LR data.

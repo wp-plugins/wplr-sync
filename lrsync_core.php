@@ -463,6 +463,16 @@ class Meow_WPLR_Sync_Core {
 		UTILS FUNCTIONS
 	*/
 
+	// Converts PHP INI size type (e.g. 24M) to int
+	function parse_ini_size( $size ) {
+		$unit = preg_replace('/[^bkmgtpezy]/i', '', $size);
+		$size = preg_replace('/[^0-9\.]/', '', $size);
+		if ( $unit )
+			return round( $size * pow( 1024, stripos( 'bkmgtpezy', $unit[0] ) ) );
+		else
+			round( $size ); 
+	}
+
 	// This function should not work even with HVVM
 	function b64_to_file( $str ) {
 		$file = tempnam( sys_get_temp_dir(), "wplr" );

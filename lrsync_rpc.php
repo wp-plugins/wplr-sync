@@ -38,6 +38,23 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 	}
 
 	// Sync file
+	function rpc_presync( $args ) {
+		if ( !$user = $this->rpc_init_with( $args ) ) {
+			return $this->error;
+		}
+		$max_execution_time = (int)ini_get( 'max_execution_time' );
+		$post_max_size = ((int)$this->parse_ini_size( ini_get( 'post_max_size' ) ) );
+		$upload_max_filesize = ( (int)$this->parse_ini_size( ini_get( 'upload_max_filesize' ) ) );
+		$presync = array(
+			'max_execution_time' => $max_execution_time,
+			'post_max_size' => $post_max_size,
+			'upload_max_filesize' => $upload_max_filesize,
+			'max_size' => min( $post_max_size, $upload_max_filesize )
+		);
+		return $presync;
+	}
+
+	// Sync file
 	function rpc_sync( $args ) {
 		if ( !$user = $this->rpc_init_with( $args ) ) {
 			return $this->error;
@@ -146,6 +163,7 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 
 	function xmlrpc_methods( $methods ) {
 		$methods['lrsync.ping'] = array( $this, 'rpc_ping' );
+		$methods['lrsync.presync'] = array( $this, 'rpc_presync' );
 		$methods['lrsync.sync'] = array( $this, 'rpc_sync' );
 		$methods['lrsync.list'] = array( $this, 'rpc_list' );
 		$methods['lrsync.delete'] = array( $this, 'rpc_delete' );
