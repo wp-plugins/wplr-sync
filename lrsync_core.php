@@ -59,7 +59,7 @@ class Meow_WPLR_Sync_Core {
 	}
 
 	function wpml_original_id( $wpid ) {
-		if ( $this->wpml_is_installed() ) {
+		if ( $this->wpml_media_is_installed() ) {
 			global $sitepress;
 			$language = $sitepress->get_default_language( $wpid );
 			return icl_object_id( $wpid, 'attachment', true, $language );
@@ -67,12 +67,13 @@ class Meow_WPLR_Sync_Core {
 		return $wpid;
 	}
 
-	function wpml_is_installed() {
-		return function_exists( 'icl_object_id' ) && !class_exists( 'Polylang' );
+	function wpml_media_is_installed() {
+		return defined( 'WPML_MEDIA_VERSION' );
+		//return function_exists( 'icl_object_id' ) && !class_exists( 'Polylang' );
 	}
 
 	function wpml_original_array( $wpids ) {
-		if ( $this->wpml_is_installed() ) {
+		if ( $this->wpml_media_is_installed() ) {
 			for ($c = 0; $c < count( $wpids ); $c++ ) {
 				$wpids[$c] = $this->wpml_original_id( $wpids[$c] );
 			}
@@ -274,7 +275,7 @@ class Meow_WPLR_Sync_Core {
 		$this->update_metadata( $wp_id, $lrinfo );
 
 		// If there are translations, maybe they need to be updated too!
-		if ( $this->wpml_is_installed() ) {
+		if ( $this->wpml_media_is_installed() ) {
 			global $sitepress;
 			$trid = $sitepress->get_element_trid( $wp_id, 'post_attachment' );
 			$translations = $sitepress->get_element_translations( $trid, 'post_attachment' );
@@ -445,7 +446,7 @@ class Meow_WPLR_Sync_Core {
 		$potentials = array();
 
 		$whereIsOriginal = "";
-		if ( $this->wpml_is_installed() ) {
+		if ( $this->wpml_media_is_installed() ) {
 			global $sitepress;
 			$tbl_wpml = $wpdb->prefix . "icl_translations";
 			$language = $sitepress->get_default_language();
