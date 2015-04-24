@@ -3,7 +3,7 @@
 Plugin Name: WP/LR Sync
 Plugin URI: http://www.meow.fr
 Description: Synchronize and maintain your photos between Lightroom and Wordpress.
-Version: 1.3.2
+Version: 1.3.3
 Author: Jordy Meow
 Author URI: http://www.meow.fr
 

@@ -42,9 +42,16 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		if ( !$user = $this->rpc_init_with( $args ) ) {
 			return $this->error;
 		}
-		$max_execution_time = (int)ini_get( 'max_execution_time' );
-		$post_max_size = ((int)$this->parse_ini_size( ini_get( 'post_max_size' ) ) );
-		$upload_max_filesize = ( (int)$this->parse_ini_size( ini_get( 'upload_max_filesize' ) ) );
+		if ( defined ('HHVM_VERSION' ) ) {
+			$max_execution_time = ini_get( 'max_execution_time' ) ? (int)ini_get( 'max_execution_time' ) : 30;
+			$post_max_size = ini_get( 'post_max_size' ) ? (int)$this->parse_ini_size( ini_get( 'post_max_size' ) ) : (int)ini_get( 'hhvm.server.max_post_size' );
+			$upload_max_filesize = ini_get( 'upload_max_filesize' ) ? (int)$this->parse_ini_size( ini_get( 'upload_max_filesize' ) ) : (int)ini_get( 'hhvm.server.upload.upload_max_file_size' );
+		}
+		else {
+			$max_execution_time = (int)ini_get( 'max_execution_time' );
+			$post_max_size = (int)$this->parse_ini_size( ini_get( 'post_max_size' ) );
+			$upload_max_filesize = (int)$this->parse_ini_size( ini_get( 'upload_max_filesize' ) );
+		}
 		$presync = array(
 			'max_execution_time' => $max_execution_time,
 			'post_max_size' => $post_max_size,

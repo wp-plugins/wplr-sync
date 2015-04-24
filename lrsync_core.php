@@ -222,7 +222,19 @@ class Meow_WPLR_Sync_Core {
 		if ( function_exists( 'wr2x_generate_images' ) )
 			wr2x_delete_attachment( $wp_id );
 		
+		// The file doesn't exist anymore for some reason
+		if ( !file_exists( $current_file ) ) {
+			error_log( "WP/LR Sync: get_attached_file() returned empty. Assuming broken DB, delete link and continue." );
+			$this->delete_attachment( $wp_id );
+			return false;
+		}
+
 		$pathinfo = pathinfo( $current_file );
+		if ( !isset( $pathinfo['dirname'] ) ) {
+			error_log( "WP/LR Sync: pathinfo() failed in sync_media_update with " . $current_file );
+			$this->error = new IXR_Error( 403, __( "Could not handle the file on the server-side." ) );
+			return false;
+		}
 		$basepath = $pathinfo['dirname'];
 
 		// Let's clean everything first
@@ -280,6 +292,8 @@ class Meow_WPLR_Sync_Core {
 			SET lr_file = %s, lastsync = NOW()
 			WHERE lr_id = %d", $lrinfo->lr_file, $lrinfo->lr_id ) 
 		);
+
+		return true;
 	}
 
 	function sync_media_add( $lrinfo, $tmp_path ) {
@@ -337,16 +351,27 @@ class Meow_WPLR_Sync_Core {
 			return false;
 		}
 
+		// Never synced, create the attachment
 		if ( !$sync_files ) {
 			if ( !$this->sync_media_add( $lrinfo, $tmp_path ) )
 				return false;
 		}
+
+		// Synced info found in DB, go through them
 		else {
+			$updates = 0;
 			foreach ( $sync_files as $sync ) {
-				$this->sync_media_update( $lrinfo, $tmp_path, $sync );
+				if ( $this->sync_media_update( $lrinfo, $tmp_path, $sync ) )
+					$updates++;
 			}
-			unlink( $tmp_path );
+			// In case DB is broken and no updates was made, we need to create the attachment
+			if ( $updates == 0 ) {
+				if ( !$this->sync_media_add( $lrinfo, $tmp_path ) )
+					return false;
+			}
 		}
+		if ( file_exists( $tmp_path ) )
+			unlink( $tmp_path );
 
 		// Returns only one result even if there are many.
 		$sync = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE lr_id = %d", $lrinfo->lr_id ), OBJECT );
