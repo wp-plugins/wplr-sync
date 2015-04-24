@@ -488,6 +488,12 @@ class Meow_WPLR_Sync_Core {
 		UTILS FUNCTIONS
 	*/
 
+	function get_upload_root()
+	{
+		$uploads = wp_upload_dir();
+		return $uploads['basedir'];
+	}
+
 	// Converts PHP INI size type (e.g. 24M) to int
 	function parse_ini_size( $size ) {
 		$unit = preg_replace('/[^bkmgtpezy]/i', '', $size);
@@ -500,7 +506,15 @@ class Meow_WPLR_Sync_Core {
 
 	// This function should not work even with HVVM
 	function b64_to_file( $str ) {
-		$file = tempnam( sys_get_temp_dir(), "wplr" );
+		
+		// From version 1.3.4 (use uploads folder for tmp):
+		if ( !file_exists( trailingslashit( $this->get_upload_root() ) . "wplr-tmp" ) )
+			mkdir( trailingslashit( $this->get_upload_root() ) . "wplr-tmp" );
+		$file = tempnam( trailingslashit( $this->get_upload_root() ) . "wplr-tmp", "wplr_" );
+		
+		// Before version 1.3.4:
+		//$file = tempnam( sys_get_temp_dir(), "wplr" );
+
 		$ifp = fopen( $file, "wb" );
 		fwrite( $ifp, base64_decode( $str ) );
 		fclose( $ifp );
