@@ -519,6 +519,7 @@ class Meow_WPLR_Sync_Core {
 		$ifp = fopen( $file, "wb" );
 		fwrite( $ifp, base64_decode( $str ) );
 		fclose( $ifp );
+		chmod( $file, 0664 );
 		return $file;
 	}
 
