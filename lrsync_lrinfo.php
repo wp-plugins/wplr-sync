@@ -20,6 +20,7 @@ class Meow_WPLR_LRInfo {
 
 	// Extra
 	public $type; // MIME type
+	public $tags; // MIME type
 	
 	// WP
 	public $wp_url;

@@ -1,20 +1,22 @@
 === WP/LR Sync ===
 Contributors: TigrouMeow
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=H2S7S3G4XMJ6J
-Tags: lightroom, photoshop, sync, synchronization, image, management, admin, export, media, image, photo
+Tags: lightroom, image, gallery, media, photo, export, management, admin, sync, synchronization
 Requires at least: 3.5
-Tested up to: 4.2.0
-Stable tag: 1.3.6
+Tested up to: 4.2.4
+Stable tag: 2.0.0
 
-Synchronize your photos and metadata between Lightroom and WordPress.
+Synchronize your photos, metadata and collections between Lightroom and WordPress.
 
 == Description ==
 
-Synchronize your photos and metadata between Lightroom and WordPress. This plugin is made to work like a charm with the WP/LR Sync plugin for Lightroom (http://apps.meow.fr/wplr-sync).
+Synchronize your photos, metadata and collections between Lightroom and WordPress. You can link meta field from Lightroom to those in WordPress and keep also that in sync. Any changes in your Lightroom will be replicated in your WordPress.
 
-Lightroom will be then able to add, update and delete photos directly. Titles, captions and alternative texts can be also synchronized. 
+If you are using specific gallery plugins or themes, WP/LR Sync can bring all the power of Lightroom to them, magically, seamlessly. You will be free to choose the theme or gallery plugin you like the best, switch between them, etc.
 
-If you dream to link the photos you uploaded previously with the original ones in Lightroom, this is possible. Using EXIF and image perceptual analysis, the plugin will offer you to link them. You also have the choice to do it manually through WordPress. The user interface will guide you through it.
+Do you have many photos in your WordPress already and they are not linked with your Lightroom? No problem, WP/LR Sync can do that too. Using EXIF and image perceptual analysis, the plugin will help you linking them or to do it manually.
+
+This plugin also requires the WP/LR Sync plugin for Lightroom available on http://apps.meow.fr/wplr-sync.
 
 Languages: English.
 
@@ -22,7 +24,7 @@ Languages: English.
 
 1. Upload `wp-lrsync` to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Install the Lightroom plugin from here: http://apps.meow.fr/wplr-sync 
+3. Install the Lightroom plugin from here: http://apps.meow.fr/wplr-sync
 4. Synchronize everything :)
 
 == Upgrade Notice ==
@@ -34,6 +36,16 @@ Replace all the files. Nothing else to do.
 Official FAQ is here: http://apps.meow.fr/wplr-sync/faq.
 
 == Changelog ==
+
+= 2.0.0 =
+* Add: Collections support.
+* Add: Tags support for media.
+* Add: Many actions for other plugins and extensions to use.
+* Add: 3 internal extensions added: Basic Posts, Basic Galleries and Logging.
+* Update: Bigger menu for WP/LR Sync, everything has been re-organized.
+* Update: Debugging Tools for WP/LR Sync now accessible through an option.
+* Fix: Multisite is now supported.
+* Info: That's a BIG update. Everything has been tested. You can update it already. The plugin for Lightroom will follow. Many information are available on http://apps.meow.fr/wplr-sync. Also just wrote a post about this news, please read it here: http://apps.meow.fr/wplr-sync-2-0/. Thank you!
 
 = 1.3.6 =
 * Fix: Issue with rights on uploaded files.

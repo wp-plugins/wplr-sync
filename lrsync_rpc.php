@@ -10,6 +10,7 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		// Authenticate and share the useful arguments.
 	function rpc_init_with( &$args ) {
 		global $wp_xmlrpc_server;
+		$this->check_db();
 		$wp_xmlrpc_server->escape( $args );
 		$blog_id  = array_shift( $args );
 		$username = array_shift( $args );
@@ -30,11 +31,9 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 
 	// Ping for the client. Should probably send back the version of the plugin.
 	function rpc_ping( $args ) {
-		if ( !$user = $this->rpc_init_with( $args ) ) {
-			return $this->error;
-		}
-		return $user;
-		return $user->data->display_name;
+		if ( !$user = $this->rpc_init_with( $args ) )
+			return "Pong! User information were not provided.";
+		return "Pong to you, " . $user->data->display_name . "!";
 	}
 
 	// Sync file
@@ -62,6 +61,15 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 	}
 
 	// Sync file
+	function rpc_sync_collection( $args ) {
+		if ( !$user = $this->rpc_init_with( $args ) )
+			return $this->error;
+		if ( !$list = $this->sync_collection( $args[0] ) )
+			return $this->error;
+		return $list;
+	}
+
+	// Sync file
 	function rpc_sync( $args ) {
 		if ( !$user = $this->rpc_init_with( $args ) ) {
 			return $this->error;
@@ -79,8 +87,11 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		$lrinfo->sync_desc = $fileinfo["syncDesc"];
 		$lrinfo->sync_alt_text = $fileinfo["syncAltText"];
 		$lrinfo->type = $fileinfo["type"];
+		$lrinfo->tags = $fileinfo["tags"];
 		$file = $this->b64_to_file( $fileinfo["data"] );
-		if ( !$sync = $this->sync_media( $lrinfo, $file ) )
+		if ( !isset( $fileinfo["wp_col_id"] ) || $fileinfo["wp_col_id"] == null )
+			$fileinfo["wp_col_id"] = -1;
+		if ( !$sync = $this->sync_media( $lrinfo, $file, $fileinfo["wp_col_id"] ) )
 			return $this->error;
 		return $sync;
 	}
@@ -90,8 +101,17 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		if ( !$user = $this->rpc_init_with( $args ) ) {
 			return $this->error;
 		}
-		$list = $this->delete_media( $args[0] );
+		$list = $this->delete_media( $args[0], isset( $args[1] ) ? $args[1] : -1 );
 		return $list;
+	}
+
+	// Delete collection
+	function rpc_delete_collection( $args ) {
+		if ( !$user = $this->rpc_init_with( $args ) ) {
+			return $this->error;
+		}
+		$res = $this->delete_collection( $args[0] );
+		return $res;
 	}
 
 	// List synced files
@@ -172,8 +192,10 @@ class Meow_WPLR_Sync_RPC extends Meow_WPLR_Sync_Core {
 		$methods['lrsync.ping'] = array( $this, 'rpc_ping' );
 		$methods['lrsync.presync'] = array( $this, 'rpc_presync' );
 		$methods['lrsync.sync'] = array( $this, 'rpc_sync' );
+		$methods['lrsync.sync_collection'] = array( $this, 'rpc_sync_collection' );
 		$methods['lrsync.list'] = array( $this, 'rpc_list' );
 		$methods['lrsync.delete'] = array( $this, 'rpc_delete' );
+		$methods['lrsync.delete_collection'] = array( $this, 'rpc_delete_collection' );
 		$methods['lrsync.list_unlinks'] = array( $this, 'rpc_list_unlinks' );
 		$methods['lrsync.link'] = array( $this, 'rpc_link' );
 		$methods['lrsync.unlink'] = array( $this, 'rpc_unlink' );
